@@ -1,0 +1,74 @@
+version: 1
+repo: kvnloo/hermes-lcm
+id: hermes-lcm
+kind: extension
+summary: Lossless context-management extension for Hermes with recoverable raw-message lineage, hierarchical summaries, and bounded recall.
+
+architecture:
+  subsystems:
+    - id: context-engine
+      name: Context engine integration
+      kind: runtime_extension
+      summary: Hooks Hermes context assembly and compaction without replacing Hermes session authority.
+      paths:
+        - __init__.py
+
+    - id: adaptive-retrieval
+      name: Adaptive retrieval
+      kind: retrieval
+      summary: Retrieves bounded context and evidence from stored raw messages and summaries.
+      paths:
+        - adaptive_retrieval.py
+        - answer_contract.py
+      depends_on: [context-engine]
+
+    - id: assertion-memory
+      name: Assertion memory
+      kind: memory
+      summary: Extracts, stores, rebuilds, and tracks durable assertions across compressed history.
+      paths:
+        - assertion_extraction.py
+        - assertion_state.py
+        - assertion_store.py
+        - assertion_rebuild.py
+      depends_on: [context-engine]
+
+    - id: evaluation
+      name: Retrieval and compression evaluation
+      kind: evaluation
+      paths:
+        - bench/
+        - benchmarking/
+        - benchmarks/
+      depends_on: [context-engine, adaptive-retrieval]
+
+  implements_mechanisms:
+    - hermes-lossless-context-dag
+
+  provides_interfaces: []
+  consumes_interfaces: []
+
+  produces_representations:
+    - lossless-context-node
+
+  consumes_representations:
+    - raw-context
+
+  boundaries:
+    owns:
+      - plugin-local recoverable context store and summary DAG
+      - bounded recall and drill-down behavior
+      - context-engine retrieval policy
+    not_here:
+      - Hermes canonical session lifecycle
+      - cross-system architecture identity
+      - provider routing authority
+
+  evidence:
+    docs:
+      - README.md
+      - docs/
+    tests:
+      - tests/
+      - benchmarks/
+    schemas: []
