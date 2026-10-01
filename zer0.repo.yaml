@@ -1,0 +1,58 @@
+version: 1
+repo: kvnloo/hermes-lcm
+id: hermes-lcm
+kind: suite
+summary: Hermes lossless-context plugin preserving raw messages and source lineage while compiling bounded active context through a recoverable summary DAG and explicit recall tools.
+
+architecture:
+  subsystems:
+    - id: raw-message-store
+      name: Raw message store
+      kind: memory
+      summary: Persists original messages and metadata in plugin-local SQLite before compaction.
+      paths: [store.py, db_bootstrap.py, sqlite_util.py, schemas.py]
+    - id: summary-dag
+      name: Hierarchical summary DAG
+      kind: compression
+      summary: Builds depth-aware summaries and condensation lineage over preserved source messages.
+      paths: [dag.py, compaction.py, chunking.py, rollup_builder.py, rollup_store.py]
+      depends_on: [raw-message-store]
+    - id: bounded-context-compiler
+      name: Bounded context compiler
+      kind: context
+      summary: Selects summaries, recent tail, and externalized references into a bounded model-visible context.
+      paths: [selective_compiler.py, fresh_tail.py, tokens.py, externalize.py]
+      depends_on: [raw-message-store, summary-dag]
+    - id: recall-retrieval
+      name: Recall and retrieval
+      kind: retrieval
+      summary: Supports exact, source-aware, semantic/hybrid, temporal, and bounded drill-down over raw and summarized history.
+      paths: [retrieval_core.py, selective_recall.py, adaptive_retrieval.py, vector_store.py, search_query.py, query_view_store.py]
+      depends_on: [raw-message-store, summary-dag]
+    - id: evidence-layer
+      name: Answer and evidence layer
+      kind: evidence
+      summary: Compiles pre-answer evidence, assertions, requirements, and evidence packs separately from retrieval.
+      paths: [preanswer_evidence.py, evidence_compiler.py, evidence_pack.py, answer_contract.py, assertion_store.py, requirements_compiler.py]
+      depends_on: [recall-retrieval]
+    - id: hermes-plugin
+      name: Hermes plugin integration
+      kind: integration
+      summary: Exposes LCM as a Hermes plugin with tools, commands, runtime identity, diagnostics, and fail-open bypass behavior.
+      paths: [plugin.yaml, tools.py, command.py, engine.py, engine_registry.py, bypass.py, diagnostics.py]
+      depends_on: [bounded-context-compiler, recall-retrieval]
+
+  implements_mechanisms: [hermes-lossless-context-dag]
+  provides_interfaces: []
+  consumes_interfaces: []
+  produces_representations: []
+  consumes_representations: []
+
+  boundaries:
+    owns: [plugin-local recoverable context DAG, raw-message preservation for LCM, bounded context compilation, LCM recall tools]
+    not_here: [Hermes core session authority, global source-memory authority, canonical z0intelligence ContextPacket semantics, Zer0 architecture authority]
+
+  evidence:
+    docs: [README.md, docs/features-overview.md, docs/agent-config-profiles.md]
+    tests: [tests/, bench/, benchmarks/]
+    schemas: [schemas.py, dependency-contract.json]
